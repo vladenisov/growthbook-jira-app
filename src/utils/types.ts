@@ -1,7 +1,14 @@
+export interface ProjectMapping {
+  jiraProjectId: string;
+  gbProjectId: string;
+}
+
 export interface StoredAppSettings {
   apiKey: string;
   persistedState: Record<string, any>;
   customFieldId?: string;
+  ownerEmail?: string;
+  projectMappings?: ProjectMapping[];
 }
 
 export function isStoredAppSettings(
@@ -20,6 +27,23 @@ export function isStoredAppSettings(
     typeof typecast.customFieldId !== "string"
   )
     return false;
+  if (
+    typecast.ownerEmail !== undefined &&
+    typeof typecast.ownerEmail !== "string"
+  )
+    return false;
+  if (typecast.projectMappings !== undefined) {
+    if (!Array.isArray(typecast.projectMappings)) return false;
+    for (const m of typecast.projectMappings) {
+      if (
+        !m ||
+        typeof m !== "object" ||
+        typeof m.jiraProjectId !== "string" ||
+        typeof m.gbProjectId !== "string"
+      )
+        return false;
+    }
+  }
 
   return true;
 }

@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import debounce from "debounce";
 import { invoke, requestJira } from "@forge/bridge";
-import { isStoredAppSettings } from "../../utils/types";
+import { isStoredAppSettings, ProjectMapping } from "../../utils/types";
 import { useJiraContext } from "./useJiraContext";
 
 interface AppSettings {
@@ -16,6 +16,10 @@ interface AppSettings {
   error: string | undefined;
   apiKey: string;
   setApiKey: (value: string) => void;
+  ownerEmail: string;
+  setOwnerEmail: (value: string) => void;
+  projectMappings: ProjectMapping[];
+  setProjectMappings: (value: ProjectMapping[]) => void;
   saving: boolean;
   persistedState: Record<string, any>;
   updatePersistedState: (key: string, value: any) => void;
@@ -30,6 +34,8 @@ export const AppSettingsContextProvider = ({
   children: ReactNode;
 }) => {
   const [apiKey, setApiKey] = useState("");
+  const [ownerEmail, setOwnerEmail] = useState("");
+  const [projectMappings, setProjectMappings] = useState<ProjectMapping[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
@@ -56,6 +62,8 @@ export const AppSettingsContextProvider = ({
           return;
         }
         setApiKey(settings.apiKey);
+        setOwnerEmail(settings.ownerEmail || "");
+        setProjectMappings(settings.projectMappings || []);
         setError(undefined);
         setPersistedState(settings.persistedState);
         setCustomFieldId(settings.customFieldId);
@@ -121,13 +129,21 @@ export const AppSettingsContextProvider = ({
   const pushUpdates = useMemo(
     () =>
       debounce(
-        (apiKey, persistedState, customFieldId) => {
+        (
+          apiKey,
+          persistedState,
+          customFieldId,
+          ownerEmail,
+          projectMappings
+        ) => {
           setSaving(true);
           setError(undefined);
           invoke("updateAppSettings", {
             apiKey,
             persistedState,
             customFieldId,
+            ownerEmail,
+            projectMappings,
           }).then((result) => {
             if (result !== true) setError("Failed to save settings");
             setSaving(false);
@@ -141,8 +157,21 @@ export const AppSettingsContextProvider = ({
 
   useEffect(() => {
     if (loading) return;
-    pushUpdates(apiKey, persistedState, customFieldId);
-  }, [apiKey, persistedState, customFieldId, loading]);
+    pushUpdates(
+      apiKey,
+      persistedState,
+      customFieldId,
+      ownerEmail,
+      projectMappings
+    );
+  }, [
+    apiKey,
+    persistedState,
+    customFieldId,
+    ownerEmail,
+    projectMappings,
+    loading,
+  ]);
 
   const updatePersistedState = (key: string, value: any) => {
     setPersistedState({ ...persistedState, [key]: value });
@@ -155,6 +184,10 @@ export const AppSettingsContextProvider = ({
         error,
         apiKey,
         setApiKey,
+        ownerEmail,
+        setOwnerEmail,
+        projectMappings,
+        setProjectMappings,
         saving,
         persistedState,
         updatePersistedState,

@@ -1,10 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import LoadingSpinner from "./LoadingSpinner";
-import { Box, ErrorMessage, Select } from "@forge/react";
+import { Box, Button, ErrorMessage, Inline, Select, Stack } from "@forge/react";
 import useApi from "../hooks/useApi";
 import { useIssueContext } from "../hooks/useIssueContext";
+import CreateFeatureForm from "./CreateFeatureForm";
 
 export default function UnlinkedIssue() {
+  const [mode, setMode] = useState<"select" | "create">("select");
+
   const {
     isLoading: featuresLoading,
     error: featuresError,
@@ -58,8 +61,17 @@ export default function UnlinkedIssue() {
 
   const featureKeySet = new Set(featureKeys);
 
+  if (mode === "create") {
+    return (
+      <Box>
+        <CreateFeatureForm onCancel={() => setMode("select")} />
+        {contextError && <ErrorMessage>{contextError}</ErrorMessage>}
+      </Box>
+    );
+  }
+
   return (
-    <Box>
+    <Stack space="space.100">
       <Select
         isSearchable
         options={[
@@ -80,7 +92,12 @@ export default function UnlinkedIssue() {
         }}
         placeholder="Choose a feature or experiment to link to this issue"
       />
+      <Inline>
+        <Button appearance="default" onClick={() => setMode("create")}>
+          Create new feature
+        </Button>
+      </Inline>
       {contextError && <ErrorMessage>{contextError}</ErrorMessage>}
-    </Box>
+    </Stack>
   );
 }
