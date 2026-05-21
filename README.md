@@ -31,7 +31,7 @@ index eee3f43..5d9ba32 100644
 @@ -28,11 +28,11 @@ resources:
  app:
    runtime:
-     name: nodejs20.x
+     name: nodejs24.x
 -  id: ari:cloud:ecosystem::app/78d5cfe5-5311-4e0e-9bbd-5be2ae1eb445
 +  id: generated-app-id
  permissions:
@@ -40,8 +40,8 @@ index eee3f43..5d9ba32 100644
    external:
      fetch:
        client:
--        - "https://api.growthbook.io"
-+        - "https://your-site-here.com"
+-        - address: https://api.growthbook.io
++        - address: https://your-site-here.com
 diff --git a/src/utils/consts.ts b/src/utils/consts.ts
 index 06e8ffa..73a7234 100644
 --- a/src/utils/consts.ts
