@@ -19,7 +19,7 @@ import { useJiraContext } from "./useJiraContext";
 interface IssueContextInfo {
   issueId: string;
   issueData: IssueData;
-  setIssueData: (value: IssueData) => void;
+  setIssueData: React.Dispatch<React.SetStateAction<IssueData>>;
   linkedObjects: LinkedObject[];
   addLinkedObject: (obj: LinkedObject) => void;
   removeLinkedObjectAt: (index: number) => void;
@@ -85,14 +85,17 @@ export const IssueContextProvider = ({ children }: { children: ReactNode }) => {
   const linkedObjects = getLinkedObjects(issueData);
 
   const addLinkedObject = (obj: LinkedObject) => {
-    setIssueData({ linkedObjects: [...getLinkedObjects(issueData), obj] });
+    setIssueData((prev) => ({
+      ...prev,
+      linkedObjects: [...getLinkedObjects(prev), obj],
+    }));
   };
 
   const removeLinkedObjectAt = (index: number) => {
-    const current = getLinkedObjects(issueData);
-    setIssueData({
-      linkedObjects: current.filter((_, i) => i !== index),
-    });
+    setIssueData((prev) => ({
+      ...prev,
+      linkedObjects: getLinkedObjects(prev).filter((_, i) => i !== index),
+    }));
   };
 
   return (

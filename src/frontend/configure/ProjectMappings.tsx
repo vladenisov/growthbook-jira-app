@@ -53,6 +53,11 @@ export default function ProjectMappings() {
             `/rest/api/3/project/search?startAt=${startAt}&maxResults=${maxResults}`,
             { headers: { Accept: "application/json" } }
           );
+          if (!response.ok) {
+            throw new Error(
+              `Failed to load Jira projects: ${response.status} ${response.statusText}`
+            );
+          }
           const data = (await response.json()) as {
             values: JiraProject[];
             isLast?: boolean;

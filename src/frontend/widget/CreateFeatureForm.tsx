@@ -223,6 +223,7 @@ export default function CreateFeatureForm({
       onCreated?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+    } finally {
       setSubmitting(false);
     }
   };
