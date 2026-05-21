@@ -40,7 +40,15 @@ const DEFAULT_VALUE_BY_TYPE: Record<ValueType, string> = {
 
 const FEATURE_KEY_PATTERN = /^[a-zA-Z0-9_.:|-]+$/;
 
-export default function CreateFeatureForm({ onCancel }: { onCancel: () => void }) {
+interface CreateFeatureFormProps {
+  onCancel: () => void;
+  onCreated?: () => void;
+}
+
+export default function CreateFeatureForm({
+  onCancel,
+  onCreated,
+}: CreateFeatureFormProps) {
   const {
     apiKey,
     ownerEmail,
@@ -48,7 +56,7 @@ export default function CreateFeatureForm({ onCancel }: { onCancel: () => void }
     customFieldMappings,
     copyIssueDescription,
   } = useAppSettingsContext();
-  const { issueId, setIssueData } = useIssueContext();
+  const { issueId, addLinkedObject } = useIssueContext();
   const {
     context: { extension, siteUrl },
   } = useJiraContext();
@@ -207,13 +215,12 @@ export default function CreateFeatureForm({ onCancel }: { onCancel: () => void }
       if (!created?.id) {
         throw new Error("GrowthBook did not return a created feature");
       }
-      setIssueData({
-        linkedObject: {
-          type: "feature",
-          id: created.id,
-          name: created.id,
-        },
+      addLinkedObject({
+        type: "feature",
+        id: created.id,
+        name: created.id,
       });
+      onCreated?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setSubmitting(false);

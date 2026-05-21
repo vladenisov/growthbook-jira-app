@@ -14,7 +14,6 @@ import type {
   FeatureResponse,
 } from "src/utils/types";
 import GrowthBookLink from "../GrowthBookLink";
-import { useIssueContext } from "../../hooks/useIssueContext";
 import { formatDate } from "../../../utils";
 import useApi from "../../hooks/useApi";
 import LoadingSpinner from "../LoadingSpinner";
@@ -22,8 +21,13 @@ import MissingObject from "../MissingObject";
 import FeatureStatusLozenge from "./FeatureStatusLozenge";
 import AssociatedExperiment from "./AssociatedExperiment";
 
-export default function FeatureDisplay({ featureId }: { featureId: string }) {
-  const { setIssueData } = useIssueContext();
+export default function FeatureDisplay({
+  featureId,
+  onRemove,
+}: {
+  featureId: string;
+  onRemove?: () => void;
+}) {
 
   const {
     isLoading: featureApiLoading,
@@ -60,7 +64,8 @@ export default function FeatureDisplay({ featureId }: { featureId: string }) {
     return <LoadingSpinner text="Fetching your feature..." />;
   if (featureApiError)
     return <ErrorMessage>{featureApiError.message}</ErrorMessage>;
-  if (!feature) return <MissingObject objectType="feature" />;
+  if (!feature)
+    return <MissingObject objectType="feature" onRemove={onRemove} />;
   if (experimentApiLoading) {
     return <LoadingSpinner text="Loading associated experiment status..." />;
   }
@@ -94,15 +99,17 @@ export default function FeatureDisplay({ featureId }: { featureId: string }) {
           />
         </Inline>
 
+        {onRemove && (
         <Button
           appearance="subtle"
-          onClick={() => setIssueData({})}
+          onClick={onRemove}
           spacing="compact"
         >
           <Text weight="medium" color="color.link" size="small" align="center">
-            Replace Linked Feature
+            Unlink
           </Text>
         </Button>
+        )}
       </Inline>
       <Inline>
         <Text>

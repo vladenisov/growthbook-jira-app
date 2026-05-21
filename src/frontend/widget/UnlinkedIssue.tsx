@@ -5,7 +5,15 @@ import useApi from "../hooks/useApi";
 import { useIssueContext } from "../hooks/useIssueContext";
 import CreateFeatureForm from "./CreateFeatureForm";
 
-export default function UnlinkedIssue() {
+interface UnlinkedIssueProps {
+  onPicked?: () => void;
+  onCancel?: () => void;
+}
+
+export default function UnlinkedIssue({
+  onPicked,
+  onCancel,
+}: UnlinkedIssueProps = {}) {
   const [mode, setMode] = useState<"select" | "create">("select");
 
   const {
@@ -22,7 +30,7 @@ export default function UnlinkedIssue() {
   );
 
   const {
-    setIssueData,
+    addLinkedObject,
     loading: contextLoading,
     error: contextError,
   } = useIssueContext();
@@ -64,7 +72,10 @@ export default function UnlinkedIssue() {
   if (mode === "create") {
     return (
       <Box>
-        <CreateFeatureForm onCancel={() => setMode("select")} />
+        <CreateFeatureForm
+          onCancel={() => setMode("select")}
+          onCreated={() => onPicked?.()}
+        />
         {contextError && <ErrorMessage>{contextError}</ErrorMessage>}
       </Box>
     );
@@ -82,20 +93,24 @@ export default function UnlinkedIssue() {
           const type = featureKeySet.has(selectedOption.value)
             ? "feature"
             : "experiment";
-          setIssueData({
-            linkedObject: {
-              type,
-              id: selectedOption.value,
-              name: selectedOption.label,
-            },
+          addLinkedObject({
+            type,
+            id: selectedOption.value,
+            name: selectedOption.label,
           });
+          onPicked?.();
         }}
         placeholder="Choose a feature or experiment to link to this issue"
       />
-      <Inline>
+      <Inline space="space.100">
         <Button appearance="default" onClick={() => setMode("create")}>
           Create new feature
         </Button>
+        {onCancel && (
+          <Button appearance="subtle" onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
       </Inline>
       {contextError && <ErrorMessage>{contextError}</ErrorMessage>}
     </Stack>

@@ -11,7 +11,6 @@ import {
 import React from "react";
 import type { Experiment, ExperimentResponse, Feature } from "src/utils/types";
 import GrowthBookLink from "../GrowthBookLink";
-import { useIssueContext } from "../../hooks/useIssueContext";
 import { formatDate, getWinningVariant } from "../../../utils";
 import useApi from "../../hooks/useApi";
 import LoadingSpinner from "../LoadingSpinner";
@@ -53,10 +52,11 @@ export function ExperimentDates({ experiment }: { experiment: Experiment }) {
 
 export default function ExperimentDisplay({
   experimentId,
+  onRemove,
 }: {
   experimentId: string;
+  onRemove?: () => void;
 }) {
-  const { setIssueData } = useIssueContext();
   const {
     isLoading: experimentApiLoading,
     error: experimentApiError,
@@ -84,7 +84,8 @@ export default function ExperimentDisplay({
     return <LoadingSpinner text="Fetching your experiment..." />;
   if (experimentApiError)
     return <ErrorMessage>{experimentApiError.message}</ErrorMessage>;
-  if (!experiment) return <MissingObject objectType="experiment" />;
+  if (!experiment)
+    return <MissingObject objectType="experiment" onRemove={onRemove} />;
   if (featureApiLoading) {
     return <LoadingSpinner text="Loading associated feature status..." />;
   }
@@ -126,15 +127,22 @@ export default function ExperimentDisplay({
           />
         </Inline>
 
-        <Button
-          appearance="subtle"
-          onClick={() => setIssueData({})}
-          spacing="compact"
-        >
-          <Text weight="medium" color="color.link" size="small" align="center">
-            Replace Linked Experiment
-          </Text>
-        </Button>
+        {onRemove && (
+          <Button
+            appearance="subtle"
+            onClick={onRemove}
+            spacing="compact"
+          >
+            <Text
+              weight="medium"
+              color="color.link"
+              size="small"
+              align="center"
+            >
+              Unlink
+            </Text>
+          </Button>
+        )}
       </Inline>
       <ExperimentDates experiment={experiment} />
       <Inline grow="fill" space="space.050" alignBlock="center">

@@ -238,6 +238,10 @@ export interface ExperimentResponse {
 }
 
 export interface IssueData {
+  linkedObjects?: LinkedObject[];
+  // Legacy: a single linked object. Kept for backward compatibility with data
+  // stored before multi-link support; readers should normalize via
+  // getLinkedObjects() and writers should populate linkedObjects.
   linkedObject?: LinkedObject;
 }
 
@@ -249,5 +253,18 @@ export function isIssueData(value: unknown): value is IssueData {
     !isLinkedObject(typecast.linkedObject)
   )
     return false;
+  if (typeof typecast.linkedObjects !== "undefined") {
+    if (!Array.isArray(typecast.linkedObjects)) return false;
+    for (const obj of typecast.linkedObjects) {
+      if (!isLinkedObject(obj)) return false;
+    }
+  }
   return true;
+}
+
+export function getLinkedObjects(data: IssueData | undefined | null): LinkedObject[] {
+  if (!data) return [];
+  if (Array.isArray(data.linkedObjects)) return data.linkedObjects;
+  if (data.linkedObject) return [data.linkedObject];
+  return [];
 }

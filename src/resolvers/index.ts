@@ -7,7 +7,12 @@ import {
 } from "../utils/storage";
 import { route, asApp } from "@forge/api";
 import { getGbLink } from "../utils";
-import { isIssueData, isLinkedObject } from "../utils/types";
+import {
+  getLinkedObjects,
+  IssueData,
+  isIssueData,
+  isLinkedObject,
+} from "../utils/types";
 
 const resolver = new Resolver();
 
@@ -31,12 +36,15 @@ resolver.define("getIssueData", async (req) => {
 resolver.define("setIssueData", async (req) => {
   const { issueId, issueData } = req.payload;
   if (!isIssueData(issueData)) return false;
+  const normalized: IssueData = {
+    linkedObjects: getLinkedObjects(issueData),
+  };
   const [setIssueDataResponse, { customFieldId }] = await Promise.all([
-    setIssueData(issueId, issueData),
+    setIssueData(issueId, normalized),
     getAppSettings(),
   ]);
   if (!setIssueDataResponse || !customFieldId) return setIssueDataResponse;
-  const obj = issueData.linkedObject;
+  const obj = normalized.linkedObjects?.[0];
   const requestJiraResponse = await asApp().requestJira(
     route`/rest/api/2/app/field/value`,
     {

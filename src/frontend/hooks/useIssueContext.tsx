@@ -7,7 +7,12 @@ import React, {
   useMemo,
 } from "react";
 import { invoke } from "@forge/bridge";
-import { isIssueData, IssueData } from "../../utils/types";
+import {
+  getLinkedObjects,
+  isIssueData,
+  IssueData,
+  LinkedObject,
+} from "../../utils/types";
 import debounce from "debounce";
 import { useJiraContext } from "./useJiraContext";
 
@@ -15,6 +20,9 @@ interface IssueContextInfo {
   issueId: string;
   issueData: IssueData;
   setIssueData: (value: IssueData) => void;
+  linkedObjects: LinkedObject[];
+  addLinkedObject: (obj: LinkedObject) => void;
+  removeLinkedObjectAt: (index: number) => void;
   loading: boolean;
   error: string | undefined;
   saving: boolean;
@@ -74,12 +82,28 @@ export const IssueContextProvider = ({ children }: { children: ReactNode }) => {
     pushUpdates(issueData);
   }, [issueData]);
 
+  const linkedObjects = getLinkedObjects(issueData);
+
+  const addLinkedObject = (obj: LinkedObject) => {
+    setIssueData({ linkedObjects: [...getLinkedObjects(issueData), obj] });
+  };
+
+  const removeLinkedObjectAt = (index: number) => {
+    const current = getLinkedObjects(issueData);
+    setIssueData({
+      linkedObjects: current.filter((_, i) => i !== index),
+    });
+  };
+
   return (
     <IssueContext.Provider
       value={{
         issueId,
         issueData,
         setIssueData,
+        linkedObjects,
+        addLinkedObject,
+        removeLinkedObjectAt,
         loading,
         error,
         saving,
