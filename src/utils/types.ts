@@ -3,12 +3,19 @@ export interface ProjectMapping {
   gbProjectId: string;
 }
 
+export interface CustomFieldMapping {
+  jiraFieldId: string;
+  gbCustomFieldId: string;
+}
+
 export interface StoredAppSettings {
   apiKey: string;
   persistedState: Record<string, any>;
   customFieldId?: string;
   ownerEmail?: string;
   projectMappings?: ProjectMapping[];
+  customFieldMappings?: CustomFieldMapping[];
+  copyIssueDescription?: boolean;
 }
 
 export function isStoredAppSettings(
@@ -44,6 +51,23 @@ export function isStoredAppSettings(
         return false;
     }
   }
+  if (typecast.customFieldMappings !== undefined) {
+    if (!Array.isArray(typecast.customFieldMappings)) return false;
+    for (const m of typecast.customFieldMappings) {
+      if (
+        !m ||
+        typeof m !== "object" ||
+        typeof m.jiraFieldId !== "string" ||
+        typeof m.gbCustomFieldId !== "string"
+      )
+        return false;
+    }
+  }
+  if (
+    typecast.copyIssueDescription !== undefined &&
+    typeof typecast.copyIssueDescription !== "boolean"
+  )
+    return false;
 
   return true;
 }

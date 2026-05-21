@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { requestJira } from "@forge/bridge";
 import {
   Box,
   Button,
@@ -7,7 +8,10 @@ import {
   Inline,
   Label,
   Select,
+  Spinner,
   Stack,
+  Text,
+  TextArea,
   Textfield,
 } from "@forge/react";
 import { apiCall } from "../hooks/useApi";
@@ -15,6 +19,8 @@ import { useAppSettingsContext } from "../hooks/useAppSettingsContext";
 import { useIssueContext } from "../hooks/useIssueContext";
 import { useJiraContext } from "../hooks/useJiraContext";
 import { Feature } from "../../utils/types";
+import { adfToMarkdown, jiraFieldToString } from "../../utils";
+import { SYNTHETIC_JIRA_FIELD_ISSUE_URL } from "../../utils/consts";
 
 type ValueType = "boolean" | "string" | "number" | "json";
 
@@ -35,12 +41,19 @@ const DEFAULT_VALUE_BY_TYPE: Record<ValueType, string> = {
 const FEATURE_KEY_PATTERN = /^[a-zA-Z0-9_.:|-]+$/;
 
 export default function CreateFeatureForm({ onCancel }: { onCancel: () => void }) {
-  const { apiKey, ownerEmail, projectMappings } = useAppSettingsContext();
-  const { setIssueData } = useIssueContext();
   const {
-    context: { extension },
+    apiKey,
+    ownerEmail,
+    projectMappings,
+    customFieldMappings,
+    copyIssueDescription,
+  } = useAppSettingsContext();
+  const { issueId, setIssueData } = useIssueContext();
+  const {
+    context: { extension, siteUrl },
   } = useJiraContext();
   const jiraProjectId: string | undefined = extension?.project?.id;
+  const issueKey: string | undefined = extension?.issue?.key;
   const mappedGbProjectId = jiraProjectId
     ? projectMappings.find((m) => m.jiraProjectId === jiraProjectId)
         ?.gbProjectId
@@ -54,6 +67,52 @@ export default function CreateFeatureForm({ onCancel }: { onCancel: () => void }
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  const [descriptionPrefilled, setDescriptionPrefilled] = useState(false);
+  const [descriptionLoading, setDescriptionLoading] = useState(false);
+  const [descriptionPrefillError, setDescriptionPrefillError] = useState<
+    string | undefined
+  >();
+
+  useEffect(() => {
+    if (!copyIssueDescription || !issueId || descriptionPrefilled) {
+      return;
+    }
+    let cancelled = false;
+    setDescriptionLoading(true);
+    setDescriptionPrefillError(undefined);
+    (async () => {
+      try {
+        const response = await requestJira(
+          `/rest/api/3/issue/${encodeURIComponent(issueId)}?fields=description`,
+          { headers: { Accept: "application/json" } }
+        );
+        if (!response.ok) {
+          throw new Error(
+            `Jira returned ${response.status} ${response.statusText}`
+          );
+        }
+        const data = (await response.json()) as {
+          fields?: { description?: unknown };
+        };
+        const md = adfToMarkdown(data.fields?.description);
+        if (cancelled) return;
+        if (md) setDescription(md);
+      } catch (e) {
+        if (!cancelled)
+          setDescriptionPrefillError(
+            e instanceof Error ? e.message : String(e)
+          );
+      } finally {
+        if (!cancelled) {
+          setDescriptionLoading(false);
+          setDescriptionPrefilled(true);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [copyIssueDescription, issueId, descriptionPrefilled]);
 
   const onValueTypeChange = (option: { label: string; value: ValueType }) => {
     setValueType(option.value);
@@ -82,6 +141,51 @@ export default function CreateFeatureForm({ onCancel }: { onCancel: () => void }
     }
     setSubmitting(true);
     try {
+      let customFields: Record<string, string> | undefined;
+      const activeFieldMappings = customFieldMappings.filter(
+        (m) => m.jiraFieldId && m.gbCustomFieldId
+      );
+      if (activeFieldMappings.length > 0) {
+        const built: Record<string, string> = {};
+
+        for (const m of activeFieldMappings) {
+          if (m.jiraFieldId === SYNTHETIC_JIRA_FIELD_ISSUE_URL) {
+            if (siteUrl && issueKey) {
+              built[m.gbCustomFieldId] = `${siteUrl}/browse/${issueKey}`;
+            }
+          }
+        }
+
+        const realFieldMappings = activeFieldMappings.filter(
+          (m) => m.jiraFieldId !== SYNTHETIC_JIRA_FIELD_ISSUE_URL
+        );
+        if (realFieldMappings.length > 0 && issueId) {
+          const fieldsParam = Array.from(
+            new Set(realFieldMappings.map((m) => m.jiraFieldId))
+          ).join(",");
+          const issueResponse = await requestJira(
+            `/rest/api/3/issue/${encodeURIComponent(
+              issueId
+            )}?fields=${encodeURIComponent(fieldsParam)}`,
+            { headers: { Accept: "application/json" } }
+          );
+          if (!issueResponse.ok) {
+            throw new Error(
+              `Failed to read Jira fields for custom field mapping: ${issueResponse.status} ${issueResponse.statusText}`
+            );
+          }
+          const issueData = (await issueResponse.json()) as {
+            fields?: Record<string, unknown>;
+          };
+          const fields = issueData.fields || {};
+          for (const m of realFieldMappings) {
+            const value = jiraFieldToString(fields[m.jiraFieldId]);
+            if (value) built[m.gbCustomFieldId] = value;
+          }
+        }
+        if (Object.keys(built).length > 0) customFields = built;
+      }
+
       const response = await apiCall(
         apiKey,
         "/api/v1/features",
@@ -94,6 +198,7 @@ export default function CreateFeatureForm({ onCancel }: { onCancel: () => void }
             defaultValue,
             description: description.trim() || undefined,
             project: mappedGbProjectId || undefined,
+            customFields,
           }),
         },
         undefined
@@ -148,13 +253,27 @@ export default function CreateFeatureForm({ onCancel }: { onCancel: () => void }
         />
       </Box>
       <Box>
-        <Label labelFor="gb-new-feature-description">Description</Label>
-        <Textfield
+        <Inline alignBlock="center" space="space.100" spread="space-between">
+          <Label labelFor="gb-new-feature-description">Description</Label>
+          {descriptionLoading && (
+            <Inline alignBlock="center" space="space.050">
+              <Spinner size="small" />
+              <Text size="small">Loading issue description...</Text>
+            </Inline>
+          )}
+        </Inline>
+        <TextArea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Optional"
-          isDisabled={submitting}
+          placeholder="Optional. Markdown supported."
+          isDisabled={submitting || descriptionLoading}
+          minimumRows={4}
         />
+        {descriptionPrefillError && (
+          <HelperMessage>
+            Could not pre-fill from the Jira issue: {descriptionPrefillError}
+          </HelperMessage>
+        )}
       </Box>
       {error && <ErrorMessage>{error}</ErrorMessage>}
       <Inline space="space.100">

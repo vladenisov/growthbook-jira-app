@@ -8,6 +8,8 @@ const APP_SETTINGS_DEFAULTS: StoredAppSettings = {
   customFieldId: "",
   ownerEmail: "",
   projectMappings: [],
+  customFieldMappings: [],
+  copyIssueDescription: false,
 };
 
 export async function getAppSettings() {

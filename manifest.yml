@@ -63,4 +63,4 @@ permissions:
   external:
     fetch:
       client:
-        - "https://api.growthbook.io"
+        - address: "https://api.growthbook.io"

@@ -10,6 +10,7 @@ import ForgeReconciler, {
   Textfield,
   HelperMessage,
   Lozenge,
+  Toggle,
 } from "@forge/react";
 import {
   AppSettingsContextProvider,
@@ -18,6 +19,7 @@ import {
 import { Icon } from "@forge/react";
 import GrowthBookLink from "../widget/GrowthBookLink";
 import ProjectMappings from "./ProjectMappings";
+import CustomFieldMappings from "./CustomFieldMappings";
 
 const App = () => {
   const {
@@ -25,6 +27,8 @@ const App = () => {
     setApiKey,
     ownerEmail,
     setOwnerEmail,
+    copyIssueDescription,
+    setCopyIssueDescription,
     error,
     loading,
     saving,
@@ -83,7 +87,27 @@ const App = () => {
         </HelperMessage>
       </Box>
       <Box paddingBlockStart="space.150">
+        <Inline alignBlock="center" space="space.100">
+          <Toggle
+            id="gb-copy-issue-description"
+            isChecked={copyIssueDescription}
+            onChange={(e) => setCopyIssueDescription(!!e.target.checked)}
+          />
+          <Label labelFor="gb-copy-issue-description">
+            Copy Jira issue description into new GrowthBook features
+          </Label>
+        </Inline>
+        <HelperMessage>
+          When enabled, opening the create-feature form on an issue pre-fills
+          the description with the issue's body. You can still edit it before
+          submitting.
+        </HelperMessage>
+      </Box>
+      <Box paddingBlockStart="space.150">
         <ProjectMappings />
+      </Box>
+      <Box paddingBlockStart="space.150">
+        <CustomFieldMappings />
       </Box>
       <Box>
         {error ? (

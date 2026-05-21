@@ -8,7 +8,11 @@ import React, {
 } from "react";
 import debounce from "debounce";
 import { invoke, requestJira } from "@forge/bridge";
-import { isStoredAppSettings, ProjectMapping } from "../../utils/types";
+import {
+  CustomFieldMapping,
+  isStoredAppSettings,
+  ProjectMapping,
+} from "../../utils/types";
 import { useJiraContext } from "./useJiraContext";
 
 interface AppSettings {
@@ -20,6 +24,10 @@ interface AppSettings {
   setOwnerEmail: (value: string) => void;
   projectMappings: ProjectMapping[];
   setProjectMappings: (value: ProjectMapping[]) => void;
+  customFieldMappings: CustomFieldMapping[];
+  setCustomFieldMappings: (value: CustomFieldMapping[]) => void;
+  copyIssueDescription: boolean;
+  setCopyIssueDescription: (value: boolean) => void;
   saving: boolean;
   persistedState: Record<string, any>;
   updatePersistedState: (key: string, value: any) => void;
@@ -36,6 +44,10 @@ export const AppSettingsContextProvider = ({
   const [apiKey, setApiKey] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
   const [projectMappings, setProjectMappings] = useState<ProjectMapping[]>([]);
+  const [customFieldMappings, setCustomFieldMappings] = useState<
+    CustomFieldMapping[]
+  >([]);
+  const [copyIssueDescription, setCopyIssueDescription] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
@@ -64,6 +76,8 @@ export const AppSettingsContextProvider = ({
         setApiKey(settings.apiKey);
         setOwnerEmail(settings.ownerEmail || "");
         setProjectMappings(settings.projectMappings || []);
+        setCustomFieldMappings(settings.customFieldMappings || []);
+        setCopyIssueDescription(settings.copyIssueDescription === true);
         setError(undefined);
         setPersistedState(settings.persistedState);
         setCustomFieldId(settings.customFieldId);
@@ -134,7 +148,9 @@ export const AppSettingsContextProvider = ({
           persistedState,
           customFieldId,
           ownerEmail,
-          projectMappings
+          projectMappings,
+          customFieldMappings,
+          copyIssueDescription
         ) => {
           setSaving(true);
           setError(undefined);
@@ -144,6 +160,8 @@ export const AppSettingsContextProvider = ({
             customFieldId,
             ownerEmail,
             projectMappings,
+            customFieldMappings,
+            copyIssueDescription,
           }).then((result) => {
             if (result !== true) setError("Failed to save settings");
             setSaving(false);
@@ -162,7 +180,9 @@ export const AppSettingsContextProvider = ({
       persistedState,
       customFieldId,
       ownerEmail,
-      projectMappings
+      projectMappings,
+      customFieldMappings,
+      copyIssueDescription
     );
   }, [
     apiKey,
@@ -170,6 +190,8 @@ export const AppSettingsContextProvider = ({
     customFieldId,
     ownerEmail,
     projectMappings,
+    customFieldMappings,
+    copyIssueDescription,
     loading,
   ]);
 
@@ -188,6 +210,10 @@ export const AppSettingsContextProvider = ({
         setOwnerEmail,
         projectMappings,
         setProjectMappings,
+        customFieldMappings,
+        setCustomFieldMappings,
+        copyIssueDescription,
+        setCopyIssueDescription,
         saving,
         persistedState,
         updatePersistedState,
