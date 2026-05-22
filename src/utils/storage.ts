@@ -12,12 +12,32 @@ const APP_SETTINGS_DEFAULTS: StoredAppSettings = {
   projectMappings: [],
   customFieldMappings: [],
   copyIssueDescription: false,
+  accessMode: "readonly",
+  primaryEnvironment: "",
 };
 
+function inferAccessMode(
+  settings: Partial<StoredAppSettings>
+): StoredAppSettings["accessMode"] {
+  if (settings.accessMode) return settings.accessMode;
+  const hasWriteSettings =
+    !!settings.ownerEmail ||
+    !!settings.copyIssueDescription ||
+    (settings.projectMappings || []).length > 0 ||
+    (settings.customFieldMappings || []).length > 0;
+  return hasWriteSettings ? "write" : "readonly";
+}
+
 export async function getAppSettings() {
-  const storedData = (await kvs.getSecret(APP_SETTINGS_KEY)) || {};
+  const storedData =
+    ((await kvs.getSecret(APP_SETTINGS_KEY)) as Partial<StoredAppSettings>) ||
+    {};
   // Load defaults for any missing fields to prevent errors
-  return { ...APP_SETTINGS_DEFAULTS, ...storedData };
+  return {
+    ...APP_SETTINGS_DEFAULTS,
+    ...storedData,
+    accessMode: inferAccessMode(storedData),
+  };
 }
 
 export async function updateAppSettings(

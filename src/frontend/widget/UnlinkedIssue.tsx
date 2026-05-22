@@ -4,6 +4,7 @@ import { Box, Button, ErrorMessage, Inline, Select, Stack } from "@forge/react";
 import useApi from "../hooks/useApi";
 import { useIssueContext } from "../hooks/useIssueContext";
 import CreateFeatureForm from "./CreateFeatureForm";
+import { useAppSettingsContext } from "../hooks/useAppSettingsContext";
 
 interface UnlinkedIssueProps {
   onPicked?: () => void;
@@ -15,6 +16,8 @@ export default function UnlinkedIssue({
   onCancel,
 }: UnlinkedIssueProps = {}) {
   const [mode, setMode] = useState<"select" | "create">("select");
+  const { accessMode } = useAppSettingsContext();
+  const writeMode = accessMode === "write";
 
   const {
     isLoading: featuresLoading,
@@ -69,7 +72,7 @@ export default function UnlinkedIssue({
 
   const featureKeySet = new Set(featureKeys);
 
-  if (mode === "create") {
+  if (mode === "create" && writeMode) {
     return (
       <Box>
         <CreateFeatureForm
@@ -103,9 +106,11 @@ export default function UnlinkedIssue({
         placeholder="Choose a feature or experiment to link to this issue"
       />
       <Inline space="space.100">
-        <Button appearance="default" onClick={() => setMode("create")}>
-          Create new feature
-        </Button>
+        {writeMode && (
+          <Button appearance="default" onClick={() => setMode("create")}>
+            Create new feature
+          </Button>
+        )}
         {onCancel && (
           <Button appearance="subtle" onClick={onCancel}>
             Cancel

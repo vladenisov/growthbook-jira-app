@@ -9,6 +9,7 @@ import React, {
 import debounce from "debounce";
 import { invoke, requestJira } from "@forge/bridge";
 import {
+  AccessMode,
   CustomFieldMapping,
   isStoredAppSettings,
   ProjectMapping,
@@ -20,6 +21,10 @@ interface AppSettings {
   error: string | undefined;
   apiKey: string;
   setApiKey: (value: string) => void;
+  accessMode: AccessMode;
+  setAccessMode: (value: AccessMode) => void;
+  primaryEnvironment: string;
+  setPrimaryEnvironment: (value: string) => void;
   ownerEmail: string;
   setOwnerEmail: (value: string) => void;
   projectMappings: ProjectMapping[];
@@ -43,6 +48,8 @@ export const AppSettingsContextProvider = ({
   children: ReactNode;
 }) => {
   const [apiKey, setApiKey] = useState("");
+  const [accessMode, setAccessMode] = useState<AccessMode>("readonly");
+  const [primaryEnvironment, setPrimaryEnvironment] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
   const [projectMappings, setProjectMappings] = useState<ProjectMapping[]>([]);
   const [customFieldMappings, setCustomFieldMappings] = useState<
@@ -80,6 +87,8 @@ export const AppSettingsContextProvider = ({
           return;
         }
         setApiKey(settings.apiKey);
+        setAccessMode(settings.accessMode || "readonly");
+        setPrimaryEnvironment(settings.primaryEnvironment || "");
         setOwnerEmail(settings.ownerEmail || "");
         setProjectMappings(settings.projectMappings || []);
         setCustomFieldMappings(settings.customFieldMappings || []);
@@ -97,6 +106,7 @@ export const AppSettingsContextProvider = ({
         setError(
           "Error initializing GrowthBook integration. Please try again later"
         );
+        setLoading(false);
       });
   }, []);
 
@@ -105,6 +115,7 @@ export const AppSettingsContextProvider = ({
       loading ||
       contextLoading ||
       error ||
+      accessMode !== "write" ||
       fetchedCustomFieldIds ||
       (featureCustomFieldId && experimentCustomFieldId) ||
       !localId
@@ -152,6 +163,7 @@ export const AppSettingsContextProvider = ({
     loading,
     contextLoading,
     error,
+    accessMode,
     localId,
     fetchedCustomFieldIds,
   ]);
@@ -167,7 +179,9 @@ export const AppSettingsContextProvider = ({
           ownerEmail,
           projectMappings,
           customFieldMappings,
-          copyIssueDescription
+          copyIssueDescription,
+          accessMode,
+          primaryEnvironment
         ) => {
           setSaving(true);
           setError(undefined);
@@ -180,6 +194,8 @@ export const AppSettingsContextProvider = ({
             projectMappings,
             customFieldMappings,
             copyIssueDescription,
+            accessMode,
+            primaryEnvironment,
           }).then((result) => {
             if (result !== true) setError("Failed to save settings");
             setSaving(false);
@@ -201,7 +217,9 @@ export const AppSettingsContextProvider = ({
       ownerEmail,
       projectMappings,
       customFieldMappings,
-      copyIssueDescription
+      copyIssueDescription,
+      accessMode,
+      primaryEnvironment
     );
   }, [
     apiKey,
@@ -212,6 +230,8 @@ export const AppSettingsContextProvider = ({
     projectMappings,
     customFieldMappings,
     copyIssueDescription,
+    accessMode,
+    primaryEnvironment,
     loading,
   ]);
 
@@ -226,6 +246,10 @@ export const AppSettingsContextProvider = ({
         error,
         apiKey,
         setApiKey,
+        accessMode,
+        setAccessMode,
+        primaryEnvironment,
+        setPrimaryEnvironment,
         ownerEmail,
         setOwnerEmail,
         projectMappings,

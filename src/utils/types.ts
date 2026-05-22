@@ -8,6 +8,8 @@ export interface CustomFieldMapping {
   gbCustomFieldId: string;
 }
 
+export type AccessMode = "readonly" | "write";
+
 export interface StoredAppSettings {
   apiKey: string;
   persistedState: Record<string, any>;
@@ -20,6 +22,8 @@ export interface StoredAppSettings {
   projectMappings?: ProjectMapping[];
   customFieldMappings?: CustomFieldMapping[];
   copyIssueDescription?: boolean;
+  accessMode?: AccessMode;
+  primaryEnvironment?: string;
 }
 
 export function isStoredAppSettings(
@@ -80,6 +84,16 @@ export function isStoredAppSettings(
   if (
     typecast.copyIssueDescription !== undefined &&
     typeof typecast.copyIssueDescription !== "boolean"
+  )
+    return false;
+  if (
+    typecast.accessMode !== undefined &&
+    !["readonly", "write"].includes(typecast.accessMode)
+  )
+    return false;
+  if (
+    typecast.primaryEnvironment !== undefined &&
+    typeof typecast.primaryEnvironment !== "string"
   )
     return false;
 
@@ -167,6 +181,7 @@ export interface FeatureEnvironment {
   enabled: boolean;
   defaultValue: string;
   rules: FeatureRule[];
+  definition?: string;
 }
 
 export interface FeatureRevision {
