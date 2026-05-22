@@ -17,9 +17,10 @@ modules:
       useAsConfig: true
   jira:customField:
     - key: growthbook-custom-field
-      name: GrowthBook Link
-      description: The connected GrowthBook object (Feature or Experiment) for a
-        single issue
+      name: GrowthBook Feature Link
+      description: The primary GrowthBook feature linked to this issue. Only the
+        first linked feature is shown here — see the issue panel for the full
+        list of linked GrowthBook features and experiments.
       type: object
       readOnly: true
       view:
@@ -29,7 +30,33 @@ modules:
         properties:
           objectType:
             type: string
-            enum: [ "feature", "experiment" ]
+            enum: [ "feature" ]
+            searchAlias: type
+          objectId:
+            type: string
+            searchAlias: id
+          objectName:
+            type: string
+            searchAlias: name
+          gbLink:
+            type: string
+            searchAlias: link
+        required: [ "objectType", "objectId", "objectName", "gbLink" ]
+    - key: growthbook-experiment-field
+      name: GrowthBook Experiment Link
+      description: The primary GrowthBook experiment linked to this issue. Only
+        the first linked experiment is shown here — see the issue panel for the
+        full list of linked GrowthBook features and experiments.
+      type: object
+      readOnly: true
+      view:
+        formatter:
+          expression: "`${value.gbLink}`"
+      schema:
+        properties:
+          objectType:
+            type: string
+            enum: [ "experiment" ]
             searchAlias: type
           objectId:
             type: string

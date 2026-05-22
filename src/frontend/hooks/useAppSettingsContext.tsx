@@ -31,7 +31,8 @@ interface AppSettings {
   saving: boolean;
   persistedState: Record<string, any>;
   updatePersistedState: (key: string, value: any) => void;
-  customFieldId: string | undefined;
+  featureCustomFieldId: string | undefined;
+  experimentCustomFieldId: string | undefined;
 }
 
 const AppSettingsContext = createContext<AppSettings | null>(null);
@@ -52,8 +53,13 @@ export const AppSettingsContextProvider = ({
   const [error, setError] = useState<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [persistedState, setPersistedState] = useState({});
-  const [customFieldId, setCustomFieldId] = useState<string | undefined>("");
-  const [fetchedCustomFieldId, setFetchedCustomFieldId] = useState(false);
+  const [featureCustomFieldId, setFeatureCustomFieldId] = useState<
+    string | undefined
+  >("");
+  const [experimentCustomFieldId, setExperimentCustomFieldId] = useState<
+    string | undefined
+  >("");
+  const [fetchedCustomFieldIds, setFetchedCustomFieldIds] = useState(false);
 
   const {
     context: { localId },
@@ -80,7 +86,10 @@ export const AppSettingsContextProvider = ({
         setCopyIssueDescription(settings.copyIssueDescription === true);
         setError(undefined);
         setPersistedState(settings.persistedState);
-        setCustomFieldId(settings.customFieldId);
+        setFeatureCustomFieldId(
+          settings.featureCustomFieldId || settings.customFieldId || ""
+        );
+        setExperimentCustomFieldId(settings.experimentCustomFieldId || "");
         setLoading(false);
       })
       .catch((e) => {
@@ -96,12 +105,12 @@ export const AppSettingsContextProvider = ({
       loading ||
       contextLoading ||
       error ||
-      customFieldId ||
-      fetchedCustomFieldId ||
+      fetchedCustomFieldIds ||
+      (featureCustomFieldId && experimentCustomFieldId) ||
       !localId
     )
       return;
-    const fetchCustomFieldId = async () => {
+    const fetchCustomFieldIds = async () => {
       setLoading(true);
       try {
         const response = await requestJira(`/rest/api/2/field`, {
@@ -113,16 +122,22 @@ export const AppSettingsContextProvider = ({
           id: string;
           schema?: Record<string, unknown>;
         }>;
-        const customField = fieldsList.find(
+        const prefix = localId.split("/").slice(0, 4).join("/");
+        const featureField = fieldsList.find(
           (field) =>
-            field.schema?.custom ===
-            localId.split("/").slice(0, 4).join("/") +
-              "/growthbook-custom-field"
+            field.schema?.custom === `${prefix}/growthbook-custom-field`
         );
-        if (customField) {
-          setCustomFieldId(customField.id);
+        const experimentField = fieldsList.find(
+          (field) =>
+            field.schema?.custom === `${prefix}/growthbook-experiment-field`
+        );
+        if (featureField && !featureCustomFieldId) {
+          setFeatureCustomFieldId(featureField.id);
         }
-        setFetchedCustomFieldId(true);
+        if (experimentField && !experimentCustomFieldId) {
+          setExperimentCustomFieldId(experimentField.id);
+        }
+        setFetchedCustomFieldIds(true);
       } catch (e) {
         console.error(e);
         setError("Error fetching list of custom fields. " + e);
@@ -130,14 +145,15 @@ export const AppSettingsContextProvider = ({
         setLoading(false);
       }
     };
-    fetchCustomFieldId();
+    fetchCustomFieldIds();
   }, [
-    customFieldId,
+    featureCustomFieldId,
+    experimentCustomFieldId,
     loading,
     contextLoading,
     error,
     localId,
-    fetchedCustomFieldId,
+    fetchedCustomFieldIds,
   ]);
 
   const pushUpdates = useMemo(
@@ -146,7 +162,8 @@ export const AppSettingsContextProvider = ({
         (
           apiKey,
           persistedState,
-          customFieldId,
+          featureCustomFieldId,
+          experimentCustomFieldId,
           ownerEmail,
           projectMappings,
           customFieldMappings,
@@ -157,7 +174,8 @@ export const AppSettingsContextProvider = ({
           invoke("updateAppSettings", {
             apiKey,
             persistedState,
-            customFieldId,
+            featureCustomFieldId,
+            experimentCustomFieldId,
             ownerEmail,
             projectMappings,
             customFieldMappings,
@@ -178,7 +196,8 @@ export const AppSettingsContextProvider = ({
     pushUpdates(
       apiKey,
       persistedState,
-      customFieldId,
+      featureCustomFieldId,
+      experimentCustomFieldId,
       ownerEmail,
       projectMappings,
       customFieldMappings,
@@ -187,7 +206,8 @@ export const AppSettingsContextProvider = ({
   }, [
     apiKey,
     persistedState,
-    customFieldId,
+    featureCustomFieldId,
+    experimentCustomFieldId,
     ownerEmail,
     projectMappings,
     customFieldMappings,
@@ -217,7 +237,8 @@ export const AppSettingsContextProvider = ({
         saving,
         persistedState,
         updatePersistedState,
-        customFieldId,
+        featureCustomFieldId,
+        experimentCustomFieldId,
       }}
     >
       {children}

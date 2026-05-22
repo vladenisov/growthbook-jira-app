@@ -11,8 +11,19 @@ import {
   getLinkedObjects,
   IssueData,
   isIssueData,
-  isLinkedObject,
+  LinkedObject,
 } from "../utils/types";
+
+function buildFieldValue(obj: LinkedObject) {
+  return {
+    objectType: obj.type,
+    objectId: obj.id,
+    objectName: obj.name,
+    gbLink: getGbLink(
+      `/${obj.type === "feature" ? obj.type + "s" : obj.type}/${obj.id}`
+    ),
+  };
+}
 
 const resolver = new Resolver();
 
@@ -39,12 +50,41 @@ resolver.define("setIssueData", async (req) => {
   const normalized: IssueData = {
     linkedObjects: getLinkedObjects(issueData),
   };
-  const [setIssueDataResponse, { customFieldId }] = await Promise.all([
+  const [setIssueDataResponse, settings] = await Promise.all([
     setIssueData(issueId, normalized),
     getAppSettings(),
   ]);
-  if (!setIssueDataResponse || !customFieldId) return setIssueDataResponse;
-  const obj = normalized.linkedObjects?.[0];
+  if (!setIssueDataResponse) return setIssueDataResponse;
+
+  const featureFieldId =
+    settings.featureCustomFieldId || settings.customFieldId;
+  const experimentFieldId = settings.experimentCustomFieldId;
+  if (!featureFieldId && !experimentFieldId) return setIssueDataResponse;
+
+  const linkedObjects = normalized.linkedObjects || [];
+  const firstFeature = linkedObjects.find((o) => o.type === "feature");
+  const firstExperiment = linkedObjects.find((o) => o.type === "experiment");
+
+  const updates: Array<{
+    customField: string;
+    issueIds: string[];
+    value: ReturnType<typeof buildFieldValue> | null;
+  }> = [];
+  if (featureFieldId) {
+    updates.push({
+      customField: featureFieldId,
+      issueIds: [issueId],
+      value: firstFeature ? buildFieldValue(firstFeature) : null,
+    });
+  }
+  if (experimentFieldId) {
+    updates.push({
+      customField: experimentFieldId,
+      issueIds: [issueId],
+      value: firstExperiment ? buildFieldValue(firstExperiment) : null,
+    });
+  }
+
   const requestJiraResponse = await asApp().requestJira(
     route`/rest/api/2/app/field/value`,
     {
@@ -53,26 +93,7 @@ resolver.define("setIssueData", async (req) => {
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        updates: [
-          {
-            customField: customFieldId,
-            issueIds: [issueId],
-            value: isLinkedObject(obj)
-              ? {
-                  objectType: obj.type,
-                  objectId: obj.id,
-                  objectName: obj.name,
-                  gbLink: getGbLink(
-                    `/${obj.type === "feature" ? obj.type + "s" : obj.type}/${
-                      obj.id
-                    }`
-                  ),
-                }
-              : null,
-          },
-        ],
-      }),
+      body: JSON.stringify({ updates }),
     }
   );
   return requestJiraResponse.status < 300;

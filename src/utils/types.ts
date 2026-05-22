@@ -11,7 +11,11 @@ export interface CustomFieldMapping {
 export interface StoredAppSettings {
   apiKey: string;
   persistedState: Record<string, any>;
+  // Legacy: pre-split value that pointed at growthbook-custom-field. Read as
+  // featureCustomFieldId if the new key is missing.
   customFieldId?: string;
+  featureCustomFieldId?: string;
+  experimentCustomFieldId?: string;
   ownerEmail?: string;
   projectMappings?: ProjectMapping[];
   customFieldMappings?: CustomFieldMapping[];
@@ -32,6 +36,16 @@ export function isStoredAppSettings(
   if (
     typecast.customFieldId !== undefined &&
     typeof typecast.customFieldId !== "string"
+  )
+    return false;
+  if (
+    typecast.featureCustomFieldId !== undefined &&
+    typeof typecast.featureCustomFieldId !== "string"
+  )
+    return false;
+  if (
+    typecast.experimentCustomFieldId !== undefined &&
+    typeof typecast.experimentCustomFieldId !== "string"
   )
     return false;
   if (

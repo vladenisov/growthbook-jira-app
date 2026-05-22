@@ -6,6 +6,8 @@ const APP_SETTINGS_DEFAULTS: StoredAppSettings = {
   apiKey: "",
   persistedState: {},
   customFieldId: "",
+  featureCustomFieldId: "",
+  experimentCustomFieldId: "",
   ownerEmail: "",
   projectMappings: [],
   customFieldMappings: [],
